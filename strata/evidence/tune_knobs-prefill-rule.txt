@@ -1,0 +1,54 @@
+# 官方规则表摘录：`--prefill` 警告
+
+**来源**：`$env:STRATA_HOME\sourcecode\strata_control\tune_knobs.py:167`
+**另见**：`$env:STRATA_HOME\terminal\0.1.51\strata_control\tune_knobs.py:167`（内容相同，逐字一致）
+**取用日期**：2026-10-29
+**用途**：证明官方规则表本身就写着这条警告
+
+---
+
+## 逐字原文（第 167 行，未改动）
+
+```python
+    {"flag": "--prefill", "test": "fixed_below_auto", "reason": "smaller prompt chunks made long prompts 11% to 75% slower"},
+```
+
+## 上下文（第 160–170 行）
+
+```python
+    {"flag": "--pool-workers", "test": "above_engine_default", "reason": "more helper threads than the engine chose made it 36% slower"},
+    {"flag": "--ple-io", "values": ("ram", "mmap"), "when": ("ram_bound",),
+     "reason": "it needs the table in memory, which this PC does not have to spare (-61% speed)"},
+    {"flag": "--adapt-every", "test": "at_least", "limit": 100000, "reason": "turning the expert re-balancing off cost 3% to 44%"},
+    {"flag": "--kv-resident", "test": "kv_resident", "reason": "below the context it made answers 22% to 34% slower (and changes them) except at 128K, where only 49152 and 65536 were measured as flat or better"},
+    {"flag": "--pcie-frac", "test": "at_least", "limit": 0.75, "when": ("pcie_bound",),
+     "reason": "a high PCIe share made answers 14% to 37% slower"},
+    {"flag": "--prefill", "test": "fixed_below_auto", "reason": "smaller prompt chunks made long prompts 11% to 75% slower"},
+    {"flag": "--expert-vram", "test": "without_prefill", "families": ("qwen36",),
+     "reason": "without a matching prompt chunk it made prompts 44% slower"},
+```
+
+## 为什么这一行是关键证据
+
+`test: "fixed_below_auto"` 的判定逻辑（`tune_knobs.py` 内）把**任何不以 `auto` 开头的
+`--prefill` 值**都判为违规。所以 `2048 / 4096 / 8192` 全都会被抓出来。
+
+而早期配置正是「分块写死成 2048」。**警告一直存在于引擎源码里**，
+只是当时没有跑 `tune auto` 去审自己的配置。
+
+## 相关：调优器本身的测试臂偏向
+
+`Arm("prefill_32k", "Larger prompt chunks (faster very long prompts)", "exact", {"--prefill": "auto:32768"})`
+（同文件第 85 行）
+
+调优器唯一的 prefill 测试臂是**往大调**（`auto:32768`），没有往小调的一侧。
+这解释了为什么它会给出「已经最快」的结论却没发现 2048 的问题。
+
+---
+
+## 引用规则
+
+- 引用源码时**逐字**，不改标点、不省略 `reason` 字段
+- 注明「官方规则表 · tune_knobs.py:167」，**写明行号**
+- 这条是**引擎源码**，不是本仓库的代码，不要写成「我们的规则表」
+- 引用 `11% to 75%` 时要带上原文的英文，不要意译成单一数字

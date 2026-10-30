@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelican on a Bicycle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  canvas {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+<canvas id="c" width="900" height="500"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let time = 0;
+let pedalingAngle = 0;
+
+function drawBackground() {
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(0.6, '#E0F0FF');
+  skyGrad.addColorStop(1, '#C8E6C9');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Sun
+  const sunX = 750, sunY = 80;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFD700';
+  ctx.fill();
+  ctx.shadowBlur = 30;
+  ctx.shadowColor = '#FFD700';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Clouds
+  drawCloud(150, 60, 40);
+  drawCloud(400, 90, 35);
+  drawCloud(620, 50, 30);
+
+  // Ground / road
+  ctx.fillStyle = '#8B7355';
+  ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+
+  // Road line
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([20, 15]);
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height - 80);
+  ctx.lineTo(canvas.width, canvas.height - 80);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Grass patches
+  for (let i = 0; i < 15; i++) {
+    const x = 30 + i * 60;
+    const y = canvas.height - 120;
+    drawGrass(x, y);
+  }
+}
+
+function drawCloud(x, y, size) {
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
+  ctx.arc(x + size * 0.4, y - size * 0.15, size * 0.5, 0, Math.PI * 2);
+  ctx.arc(x + size * 0.8, y, size * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawGrass(x, y) {
+  ctx.strokeStyle = '#4CAF50';
+  ctx.lineWidth = 2;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + i * 3, y);
+    ctx.lineTo(x + i * 3 + Math.sin(time * 2 + x) * 4, y - 15);
+    ctx.stroke();
+  }
+}
+
+function drawWheel(cx, cy, radius, angle) {
+  // Tire
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Spokes
+  for (let i = 0; i < 8; i++) {
+    const a = angle + i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius);
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Hub
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#888';
+  ctx.fill();
+}
+
+function drawBicycle(bikeX, bikeY) {
+  const rearWheelX = bikeX - 70;
+  const rearWheelY = bikeY + 50;
+  const frontWheelX = bikeX + 70;
+  const frontWheelY = bikeY + 50;
+
+  // Frame
+  ctx.strokeStyle = '#E74C3C';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+
+  // Seat tube (from seat to bottom bracket)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(bikeX, bikeY + 50);
+  ctx.stroke();
+
+  // Down tube (from head tube top to bottom bracket)
+  ctx.beginPath();
+  ctx.moveTo(frontWheelX - 10, frontWheelY - 40);
+  ctx.lineTo(bikeX, bikeY + 50);
+  ctx.stroke();
+
+  // Top tube (from seat to head tube)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(frontWheelX - 10, frontWheelY - 40);
+  ctx.stroke();
+
+  // Chain stay (from bottom bracket to rear wheel)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY + 50);
+  ctx.lineTo(rearWheelX, rearWheelY);
+  ctx.stroke();
+
+  // Seat stay (from seat to rear wheel)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(rearWheelX, rearWheelY);
+  ctx.stroke();
+
+  // Fork
+  ctx.beginPath();
+  ctx.moveTo(frontWheelX - 10, frontWheelY - 40);
+  ctx.lineTo(frontWheelX, frontWheelY);
+  ctx.stroke();
+
+  // Handlebars
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(frontWheelX - 10, frontWheelY - 40);
+  ctx.lineTo(frontWheelX - 25, frontWheelY - 55);
+  ctx.stroke();
+
+  // Seat
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(bikeX, bikeY - 25, 12, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crank / pedal area
+  const crankAngle = pedalingAngle;
+  const crankLen = 18;
+  const bbX = bikeX, bbY = bikeY + 50;
+
+  // Chainring
+  ctx.beginPath();
+  ctx.arc(bbX, bbY, 12, 0, Math.PI * 2);
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Crank arms
+  const crankEndX = bbX + Math.cos(crankAngle) * crankLen;
+  const crankEndY = bbY + Math.sin(crankAngle) * crankLen;
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(bbX, bbY);
+  ctx.lineTo(crankEndX, crankEndY);
+  ctx.stroke();
+
+  // Pedal
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(crankEndX, crankEndY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Chain (simplified)
+  ctx.strokeStyle = '#777';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(bbX + 12, bbY);
+  ctx.lineTo(rearWheelX + 6, rearWheelY);
+  ctx.stroke();
+
+  // Wheels
+  drawWheel(rearWheelX, rearWheelY, 30, pedalingAngle * 0.5);
+  drawWheel(frontWheelX, frontWheelY, 30, pedalingAngle * 0.5);
+}
+
+function drawPelican(bikeX, bikeY) {
+  const pelicanX = bikeX;
+  const pelicanY = bikeY - 60;
+
+  // Body bobbing animation
+  const bob = Math.sin(time * 3) * 4;
+  const lean = Math.sin(time * 2) * 0.05;
+
+  ctx.save();
+  ctx.translate(pelicanX, pelicanY + bob);
+  ctx.rotate(lean);
+
+  // Body
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 35, 28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#D4C5A9';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Neck
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.moveTo(-10, -15);
+  ctx.quadraticCurveTo(-20, -35, -15, -45);
+  ctx.lineTo(10, -45);
+  ctx.quadraticCurveTo(15, -35, 10, -15);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.arc(-2, -48, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Beak (pelican pouch!)
+  ctx.fillStyle = '#FFA500';
+  ctx.beginPath();
+  ctx.moveTo(10, -48);
+  ctx.lineTo(35, -46);
+  ctx.lineTo(30, -42);
+  ctx.quadraticCurveTo(20, -38, 10, -44);
+  ctx.closePath();
+  ctx.fill();
+
+  // Pouch detail
+  ctx.fillStyle = '#FFB347';
+  ctx.beginPath();
+  ctx.moveTo(15, -46);
+  ctx.quadraticCurveTo(25, -40, 30, -42);
+  ctx.lineTo(28, -44);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(-6, -50, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.arc(-7, -51, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Wing (flapping slightly)
+  const wingFlap = Math.sin(time * 4) * 8;
+  ctx.fillStyle = '#E8E0D0';
+  ctx.beginPath();
+  ctx.moveTo(-15, -10);
+  ctx.quadraticCurveTo(-30, -20 + wingFlap, -25, 5);
+  ctx.lineTo(-10, 10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tail feathers
+  ctx.fillStyle = '#D4C5A9';
+  for (let i = 0; i < 3; i++) {
+    const angle = -0.3 + i * 0.25;
+    ctx.beginPath();
+    ctx.moveTo(15, 10);
+    ctx.lineTo(15 + Math.cos(angle) * 20, 10 + Math.sin(angle) * 20);
+    ctx.lineTo(18, 12);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Legs pedaling
+  const legAngle = pedalingAngle;
+  const hipX = -5, hipY = 15;
+
+  // Left leg
+  const kneeX = hipX + Math.cos(legAngle) * 20;
+  const kneeY = hipY + Math.sin(legAngle) * 20;
+  ctx.strokeStyle = '#C4A882';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(kneeX, kneeY);
+  ctx.stroke();
+
+  // Foot on pedal
+  const footX = bikeX + Math.cos(pedalingAngle) * 18;
+  const footY = bikeY + 50 + Math.sin(pedalingAngle) * 18;
+  ctx.beginPath();
+  ctx.moveTo(kneeX, kneeY);
+  ctx.lineTo(footX, footY);
+  ctx.stroke();
+
+  // Right leg (behind)
+  const rKneeX = hipX + Math.cos(legAngle + Math.PI) * 20;
+  const rKneeY = hipY + Math.sin(legAngle + Math.PI) * 20;
+  ctx.strokeStyle = '#B8976E';
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(rKneeX, rKneeY);
+  ctx.stroke();
+
+  // Feet
+  ctx.fillStyle = '#C4A882';
+  ctx.beginPath();
+  ctx.ellipse(footX, footY, 6, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawMotionLines() {
+  ctx.strokeStyle = 'rgba(100,100,100,0.3)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const y = canvas.height - 100 + i * 8;
+    const offset = (time * 200 + i * 40) % canvas.width;
+    ctx.beginPath();
+    ctx.moveTo(offset, y);
+    ctx.lineTo(offset + 30, y);
+    ctx.stroke();
+  }
+}
+
+function animate() {
+  time += 0.016;
+  pedalingAngle += 0.08;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawBackground();
+  drawMotionLines();
+
+  const bikeX = 450;
+  const bikeY = 280;
+
+  drawBicycle(bikeX, bikeY);
+  drawPelican(bikeX, bikeY);
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

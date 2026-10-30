@@ -1,0 +1,18 @@
+Tuning qwen3.8-flash-next-iq2_xs (quick); engine C:\Users\<user>\AppData\Local\Strata\components\engine\0.1.50-windows-x86_64-cuda-cuda13\strata.exe
+[  0m] Checking your PC before the first measurement  (about 15 min left)
+[  0m] Measuring your current settings  (about 15 min left)
+[  0m] Waiting for the PC to be quiet (the CPU is 33% busy)  (about 15 min left)
+[  2m] Trying settings that need no restart  (about 15 min left)
+[  3m] Measured your current settings  (about 16 min left)
+[  3m] Trying: Keep more of the conversation in graphics memory (round 1 of 2)  (about 16 min left)
+[  3m] Waiting for the PC to be quiet (the CPU is 25% busy)  (about 16 min left)
+[  6m] Trying: Keep more of the conversation in graphics memory (round 2 of 2)  (about 9 min left)
+[  8m] Measuring your current settings again (round 2 of 2)  (about 6 min left)
+[  8m] Waiting for the PC to be quiet (the CPU is 25% busy)  (about 6 min left)
+[  8m] Waiting for the PC to be quiet (the CPU is 28% busy)  (about 6 min left)
+[ 11m] Measuring your current settings once more to check the PC did not drift  (about 3 min left)
+[ 11m] Waiting for the PC to be quiet (the CPU is 32% busy)  (about 3 min left)
+[ 13m] Your current settings are already the fastest we found. Nothing was changed.
+
+Your current settings are already the fastest we found. Nothing was changed.
+  Saved as 'IQ2_XS 256K Tuned' so it is not tuned again on reopen.

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelican on a Bicycle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  canvas {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+<canvas id="c" width="900" height="500"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let time = 0;
+let wheelAngle = 0;
+let bobPhase = 0;
+let legPhase = 0;
+let headBob = 0;
+let wingFlap = 0;
+
+function drawBackground() {
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(0.6, '#B0E0E6');
+  skyGrad.addColorStop(1, '#90EE90');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Sun
+  ctx.beginPath();
+  ctx.arc(750, 80, 40, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFD700';
+  ctx.fill();
+  ctx.shadowBlur = 30;
+  ctx.shadowColor = '#FFD700';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Clouds
+  drawCloud(150, 60, 40);
+  drawCloud(400, 90, 35);
+  drawCloud(620, 50, 30);
+
+  // Ground
+  ctx.fillStyle = '#7CFC00';
+  ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+
+  // Road
+  ctx.fillStyle = '#444';
+  ctx.fillRect(0, canvas.height - 60, canvas.width, 50);
+
+  // Road dashes
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([20, 15]);
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height - 35);
+  ctx.lineTo(canvas.width, canvas.height - 35);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Grass tufts
+  for (let i = 0; i < 20; i++) {
+    const x = i * 45 + 10;
+    const y = canvas.height - 65;
+    drawGrassTuft(x, y);
+  }
+
+  // Trees in background
+  drawTree(80, canvas.height - 120, 30);
+  drawTree(700, canvas.height - 140, 35);
+}
+
+function drawCloud(x, y, size) {
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
+  ctx.arc(x + size * 0.4, y - size * 0.15, size * 0.5, 0, Math.PI * 2);
+  ctx.arc(x + size * 0.8, y, size * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawGrassTuft(x, y) {
+  ctx.strokeStyle = '#228B22';
+  ctx.lineWidth = 2;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + i * 3, y);
+    ctx.lineTo(x + i * 5, y - 12);
+    ctx.stroke();
+  }
+}
+
+function drawTree(x, y, size) {
+  // Trunk
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(x - 4, y, 8, size * 0.6);
+
+  // Canopy
+  ctx.fillStyle = '#2E8B57';
+  ctx.beginPath();
+  ctx.arc(x, y - size * 0.3, size * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawWheel(cx, cy, radius) {
+  // Tire
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Spokes
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 8; i++) {
+    const angle = wheelAngle + (i * Math.PI / 4);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+    ctx.stroke();
+  }
+
+  // Hub
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawFrame(bikeX, bikeY) {
+  const rearWheelX = bikeX - 60;
+  const rearWheelY = bikeY + 30;
+  const frontWheelX = bikeX + 60;
+  const frontWheelY = bikeY + 30;
+
+  // Frame lines
+  ctx.strokeStyle = '#E74C3C';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+
+  // Seat tube (from seat to bottom bracket)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(bikeX, bikeY + 10);
+  ctx.stroke();
+
+  // Down tube (from head tube to bottom bracket)
+  ctx.beginPath();
+  ctx.moveTo(bikeX + 45, bikeY - 30);
+  ctx.lineTo(bikeX, bikeY + 10);
+  ctx.stroke();
+
+  // Top tube (from seat to head tube)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(bikeX + 45, bikeY - 30);
+  ctx.stroke();
+
+  // Chain stay (from bottom bracket to rear wheel)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY + 10);
+  ctx.lineTo(rearWheelX, rearWheelY);
+  ctx.stroke();
+
+  // Seat stay (from seat to rear wheel)
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY - 20);
+  ctx.lineTo(rearWheelX, rearWheelY);
+  ctx.stroke();
+
+  // Fork (from head tube to front wheel)
+  ctx.beginPath();
+  ctx.moveTo(bikeX + 45, bikeY - 30);
+  ctx.lineTo(frontWheelX, frontWheelY);
+  ctx.stroke();
+
+  // Handlebar
+  ctx.strokeStyle = '#E74C3C';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(bikeX + 45, bikeY - 30);
+  ctx.lineTo(bikeX + 55, bikeY - 45);
+  ctx.stroke();
+
+  // Handlebar grip
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(bikeX + 55, bikeY - 45, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Seat
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.ellipse(bikeX, bikeY - 22, 12, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crank / pedal area
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 3;
+  const crankAngle = legPhase;
+  ctx.beginPath();
+  ctx.moveTo(bikeX, bikeY + 10);
+  ctx.lineTo(bikeX + Math.cos(crankAngle) * 15, bikeY + 10 + Math.sin(crankAngle) * 15);
+  ctx.stroke();
+
+  // Pedal
+  const pedalX = bikeX + Math.cos(crankAngle) * 15;
+  const pedalY = bikeY + 10 + Math.sin(crankAngle) * 15;
+  ctx.fillStyle = '#666';
+  ctx.fillRect(pedalX - 4, pedalY - 2, 8, 4);
+
+  // Chain ring
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bikeX, bikeY + 10, 12, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawPelican(bikeX, bikeY) {
+  const bobOffset = Math.sin(bobPhase) * 3;
+  const headBobOffset = Math.sin(headBob) * 4;
+  const pelicanBaseY = bikeY - 20 + bobOffset;
+
+  // Body
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.ellipse(bikeX, pelicanBaseY, 30, 22, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Tail feathers
+  ctx.fillStyle = '#E8E8D0';
+  ctx.beginPath();
+  ctx.moveTo(bikeX - 25, pelicanBaseY + 10);
+  ctx.lineTo(bikeX - 40, pelicanBaseY + 5);
+  ctx.lineTo(bikeX - 35, pelicanBaseY + 15);
+  ctx.closePath();
+  ctx.fill();
+
+  // Neck
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.moveTo(bikeX + 10, pelicanBaseY - 10);
+  ctx.quadraticCurveTo(bikeX + 25, pelicanBaseY - 35, bikeX + 30, pelicanBaseY - 45 + headBobOffset);
+  ctx.lineTo(bikeX + 20, pelicanBaseY - 45 + headBobOffset);
+  ctx.quadraticCurveTo(bikeX + 15, pelicanBaseY - 30, bikeX + 10, pelicanBaseY - 10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head
+  const headX = bikeX + 30;
+  const headY = pelicanBaseY - 45 + headBobOffset;
+
+  ctx.fillStyle = '#F5F5DC';
+  ctx.beginPath();
+  ctx.arc(headX, headY, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Beak (pelican pouch!)
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.moveTo(headX + 5, headY - 3);
+  ctx.lineTo(headX + 25, headY + 2);
+  ctx.lineTo(headX + 20, headY + 12);
+  ctx.quadraticCurveTo(headX + 10, headY + 14, headX + 5, headY + 8);
+  ctx.closePath();
+  ctx.fill();
+
+  // Pouch detail
+  ctx.fillStyle = '#FFA500';
+  ctx.beginPath();
+  ctx.moveTo(headX + 8, headY + 2);
+  ctx.quadraticCurveTo(headX + 18, headY + 10, headX + 20, headY + 12);
+  ctx.lineTo(headX + 15, headY + 14);
+  ctx.quadraticCurveTo(headX + 10, headY + 12, headX + 8, headY + 6);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#333';
+  ctx.beginPath();
+  ctx.arc(headX + 4, headY - 4, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye highlight
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(headX + 5, headY - 5, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Wing (flapping)
+  const wingAngle = Math.sin(wingFlap) * 0.3;
+  ctx.save();
+  ctx.translate(bikeX + 5, pelicanBaseY - 15);
+  ctx.rotate(wingAngle);
+  ctx.fillStyle = '#E8E8D0';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(-20, -15, -30, -5);
+  ctx.quadraticCurveTo(-25, 5, -10, 10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Wing tip feathers
+  ctx.fillStyle = '#D4C9A8';
+  for (let i = 0; i < 3; i++) {
+    const fx = -25 + i * 5;
+    const fy = -5 + i * 3;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(fx - 8, fy - 4);
+    ctx.lineTo(fx - 6, fy + 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Legs on pedals
+  const legAngle = legPhase;
+  const pedalX = bikeX + Math.cos(legAngle) * 15;
+  const pedalY = bikeY + 10 + Math.sin(legAngle) * 15;
+
+  ctx.strokeStyle = '#FF8C00';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+
+  // Left leg
+  ctx.beginPath();
+  ctx.moveTo(bikeX - 5, pelicanBaseY + 15);
+  ctx.quadraticCurveTo(bikeX - 10, bikeY + 5, pedalX, pedalY);
+  ctx.stroke();
+
+  // Right leg
+  ctx.beginPath();
+  ctx.moveTo(bikeX + 5, pelicanBaseY + 15);
+  ctx.quadraticCurveTo(bikeX + 10, bikeY + 5, pedalX, pedalY);
+  ctx.stroke();
+
+  // Feet on pedals
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.ellipse(pedalX, pedalY, 6, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSpeedLines() {
+  ctx.strokeStyle = 'rgba(100,100,100,0.3)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const y = canvas.height - 40 + i * 8;
+    const offset = (time * 3 + i * 15) % 60;
+    ctx.beginPath();
+    ctx.moveTo(200 - offset, y);
+    ctx.lineTo(200 - offset - 30, y);
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawBackground();
+
+  const bikeX = 450;
+  const bikeY = canvas.height - 120;
+
+  // Update animation phases
+  wheelAngle += 0.08;
+  bobPhase += 0.06;
+  legPhase += 0.12;
+  headBob += 0.04;
+  wingFlap += 0.05;
+
+  drawSpeedLines();
+  drawFrame(bikeX, bikeY);
+  drawWheel(bikeX - 60, bikeY + 30, 28);
+  drawWheel(bikeX + 60, bikeY + 30, 28);
+  drawPelican(bikeX, bikeY);
+
+  time++;
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

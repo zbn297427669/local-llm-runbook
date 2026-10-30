@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+*.tmp
+
+# 模型权重与引擎二进制一律不入库
+*.gguf
+*.safetensors
+*.bin
+models/
+engines/
+
+# 脚本输出
+out/
+
+# 编辑器 / 系统杂物
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.bak-strata
+*.orig

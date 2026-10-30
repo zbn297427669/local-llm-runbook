@@ -1,0 +1,12 @@
+engine : <工作目录>\ninfer\engine\kvmem-0.18.0\ninfer-kvmem-server.exe
+model  : <工作目录>\ninfer\model\Ternary-Bonsai-2-27B-ninfer-v3.ninfer
+context: 262144
+port   : 8090
+
+2026-10-26 22:15:03.453  INFO  build 8319e8f-dirty
+2026-10-26 22:15:03.484  INFO  starting engine
+2026-10-26 22:15:03.611  INFO  engine | device profile nvidia-geforce-rtx-4080-sm89: 67 routed keys (calibration)
+2026-10-26 22:15:04.237  INFO  loading weights | 6.70 GiB
+2026-10-26 22:15:05.612  INFO  weights ready | 6.70 GiB | 1.4s | 4.87 GiB/s
+2026-10-26 22:15:05.645  ERROR startup failed | finalizing target | 24.0 ms
+2026-10-26 22:15:05.692  FATAL server failed during startup | minimum Engine runtime reservation requires 17680346624 bytes in addition to 1073741824 bytes of automatic headroom, but only 8615100416 bytes are available after weights

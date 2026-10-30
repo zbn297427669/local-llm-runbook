@@ -1,0 +1,76 @@
+# 引擎启动日志摘录（IQ2_XS 256K 档）
+
+**来源**：`%LOCALAPPDATA%\Strata\launch\iq2_xs-256k.engine.log`（完整文件 13,588 行）
+**原始时间**：2026-10-26 18:02 起
+**摘录**：2026-10-29，用于复核启动参数与运行期指标
+**脱敏**：原始第 1 行含用户名与安装目录的完整路径，已隐去，
+只保留引擎参数部分（参数本身是证据，路径不是）。
+
+> 用法：引用时注明「引擎日志 · 摘录」，引用的每一行都能在下面逐字找到。
+> 不得改写措辞、不得拼接不存在的行。
+
+---
+
+## 启动序列（原文第 2–46 行）
+
+```
+strata generate: memory guard: limit 63.7 GiB (source: meminfo), current 23.8 GiB,
+                 reclaimable cache credited 0.0 GiB; available 39.9 GiB
+                 (MemAvailable 39.9 GiB), floor 2560 MiB
+strata generate: KV streaming: 32768 of 262144 cells per QSA layer in VRAM,
+                 the K/V in 2.39 GiB of pinned RAM
+strata mtp: draft layer loaded, 835 MiB of VRAM (experts 675, dense 111)
+strata generate: expert arena read unbuffered
+strata generate: loaded 33.02 GiB at 5.55 GiB/s
+strata generate: CPU pool tasks/phase: 48 (automatic), participating threads: 16
+strata generate: CPU pool: 15 workers by default (16 physical cores,
+                 24 logical processors; bounded by every physical core but the host's)
+strata generate: expert cache 4292 slots, 5.76 GiB of VRAM
+strata serve: Windows commit: 53.9 GiB left of a 154.7 GiB limit (RAM + page file)
+strata serve: the prompt path borrows 1319 CUDA0 cache slots (1.76 GiB)
+strata serve: 2376 MiB of VRAM free with everything loaded
+```
+
+## 引擎启动参数（原文第 1 行，**已脱敏，非逐字**）
+
+> 原始此行含用户名与安装目录的完整路径，已替换为占位符。
+> 参数名与参数值是原文的；路径部分不是。**画面上引用时说「启动参数含 `--prefill 2048`」，不要声称整行逐字。**
+
+```
+strata.exe --serve --pack <pack> --native <shard1.gguf> --ple-gguf <shard2.gguf>
+  --expert-profile <expert-profile.bin> --spec 4 --spec-min-p 0.5 --mtp <mtp>
+  --max-context 262144 --kv k8v4 --kv-resident 32768
+  --expert-cache 4096 --prefill 2048
+```
+
+**注意 `--prefill 2048`**：这是早期「写死成 2048」的那一版配置。此日志是该配置下的启动记录。
+
+## 运行期证据
+
+```
+strata serve: decode expert cache hit rate: 60.9% (182 hits / 299 lookups);
+              86 more read by the GPU over PCIe or from another GPU
+              (22.3% of all 385 routed)
+strata serve: KV streaming: 96.30% of 4536 block reads hit VRAM,
+              0.7 MiB read from RAM
+```
+
+---
+
+## 哪些数字对得上
+
+| 数字 | 出处行 |
+|---|---|
+| 33.02 GiB 专家 arena | `loaded 33.02 GiB at 5.55 GiB/s` |
+| 4292 槽专家缓存 / 5.76 GiB | `expert cache 4292 slots, 5.76 GiB of VRAM` |
+| KV 32768 / 262144 | `KV streaming: 32768 of 262144 cells per QSA layer` |
+| 15 workers / 16 物理核 | `CPU pool: 15 workers by default` |
+| 1319 槽借用 | `the prompt path borrows 1319 CUDA0 cache slots` |
+| 缓存命中 60.9% | `decode expert cache hit rate: 60.9%` |
+| `--prefill 2048` | 第 1 行启动参数 |
+
+## 不要做的事
+
+- **不要**把整份 13,588 行日志提交入库（含 21 处用户名路径，且体积无必要）
+- **不要**把它说成「启动录屏」——这是日志摘录，不是录屏
+- **不要**把 `memory guard: limit 63.7 GiB` 说成显存上限，那是系统内存

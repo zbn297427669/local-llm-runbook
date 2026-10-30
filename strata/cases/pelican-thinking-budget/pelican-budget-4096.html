@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelican Riding a Bicycle</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #e8f7ff;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+function circle(x, y, r, fill, stroke, lineWidth = 0) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+}
+
+function line(x1, y1, x2, y2, color, width) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  ctx.stroke();
+}
+
+function drawCloud(x, y, s) {
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.arc(x, y, s * 0.8, 0, Math.PI * 2);
+  ctx.arc(x + s * 0.8, y - s * 0.2, s * 0.65, 0, Math.PI * 2);
+  ctx.arc(x + s * 1.6, y, s * 0.7, 0, Math.PI * 2);
+  ctx.arc(x + s * 0.8, y + s * 0.35, s * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawWheel(cx, cy, r, angle) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  circle(0, 0, r, null, "#222", r * 0.12);
+  circle(0, 0, r * 0.86, null, "#999", r * 0.04);
+
+  ctx.save();
+  ctx.rotate(angle);
+  ctx.strokeStyle = "#777";
+  ctx.lineWidth = r * 0.025;
+
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * r * 0.86, Math.sin(a) * r * 0.86);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  circle(0, 0, r * 0.08, "#444", "#222", r * 0.02);
+  ctx.restore();
+}
+
+function drawPelicanLeg(hip, foot, thigh, shin, bendSign) {
+  const dx = foot.x - hip.x;
+  const dy = foot.y - hip.y;
+  const dist = Math.hypot(dx, dy);
+  const maxLen = thigh + shin;
+
+  const d = Math.min(dist, maxLen * 0.98);
+  const ux = dx / dist;
+  const uy = dy / dist;
+
+  const base = (thigh * thigh - shin * shin + d * d) / (2 * d);
+  const height = Math.sqrt(Math.max(0, thigh * thigh - base * base));
+
+  const px = -uy * bendSign;
+  const py = ux * bendSign;
+
+  const knee = {
+    x: hip.x + ux * base + px * height,
+    y: hip.y + uy * base + py * height
+  };
+
+  ctx.strokeStyle = "#d98c5f";
+  ctx.lineWidth = Math.max(2, thigh * 0.18);
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(hip.x, hip.y);
+  ctx.lineTo(knee.x, knee.y);
+  ctx.lineTo(foot.x, foot.y);
+  ctx.stroke();
+
+  circle(knee.x, knee.y, thigh * 0.12, "#d98c5f");
+  circle(foot.x, foot.y, shin * 0.12, "#d98c5f");
+}
+
+function drawScene(t) {
+  ctx.clearRect(0, 0, W, H);
+
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#bfe6ff");
+  sky.addColorStop(1, "#e8f7ff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  circle(W * 0.82, H * 0.18, Math.min(W, H) * 0.07, "#ffd166");
+
+  for (let i = 0; i < 5; i++) {
+    const cloudX = ((i * W / 4 + t * 35) % (W + 220)) - 110;
+    const cloudY = H * 0.12 + i * H * 0.045;
+    drawCloud(cloudX, cloudY, Math.min(W, H) * 0.045);
+  }
+
+  const R = Math.min(W, H) * 0.12;
+  const groundY = H * 0.76;
+  const wheelY = groundY - R;
+
+  ctx.fillStyle = "#7fb069";
+  ctx.fillRect(0, groundY, W, H - groundY);
+
+  ctx.fillStyle = "#d9d9d9";
+  ctx.fillRect(0, groundY, W, H * 0.08);
+
+  ctx.fillStyle = "#6f9f5f";
+  ctx.fillRect(0, groundY + H * 0.08, W, H - groundY - H * 0.08);
+
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = Math.max(2, R * 0.05);
+  ctx.setLineDash([R * 0.45, R * 0.45]);
+  ctx.lineDashOffset = -t * 120;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + H * 0.04);
+  ctx.lineTo(W, groundY + H * 0.04);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const cx = W / 2;
+  const wheelbase = R * 1.8;
+  const rearX = cx - wheelbase / 2;
+  const frontX = cx + wheelbase / 2;
+
+  const bob = Math.sin(t * 3) * R * 0.04;
+  const wheelAngle = t * 4;
+  const crankAngle = t * 3;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  ctx.beginPath();
+  ctx.ellipse(cx, groundY + R * 0.08, R * 1.8, R * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  drawWheel(rearX, wheelY, R, wheelAngle);
+  drawWheel(frontX, wheelY, R, wheelAngle);
+
+  const bb = { x: cx, y: wheelY - R * 0.15 };
+  const seat = { x: cx - R * 0.2, y: wheelY - R * 1.1 + bob };
+  const headTube = { x: frontX - R * 0.1, y: wheelY - R * 0.9 };
+  const handlebar = { x: headTube.x + R * 0.18, y: headTube.y - R * 0.25 };
+
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = R * 0.08;
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(rearX, wheelY);
+  ctx.lineTo(bb.x, bb.y);
+  ctx.lineTo(seat.x, seat.y);
+  ctx.lineTo(headTube.x, headTube.y);
+  ctx.lineTo(frontX, wheelY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(bb.x, bb.y);
+  ctx.lineTo(headTube.x, headTube.y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(headTube.x, headTube.y);
+  ctx.lineTo(handlebar.x, handlebar.y);
+  ctx.stroke();
+
+  ctx.fillStyle = "#333";
+  ctx.beginPath();
+  ctx.ellipse(seat.x, seat.y, R * 0.22, R * 0.08, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = R * 0.035;
+  ctx.beginPath();
+  ctx.moveTo(rearX, wheelY);
+  ctx.lineTo(bb.x, bb.y);
+  ctx.stroke();
+
+  circle(bb.x, bb.y, R * 0.22, null, "#555", R * 0.035);
+
+  const crankR = R * 0.35;
+  const pedal1 = {
+    x: bb.x + Math.cos(crankAngle) * crankR,
+    y: bb.y + Math.sin(crankAngle) * crankR
+  };
+  const pedal2 = {
+    x: bb.x - Math.cos(crankAngle) * crankR,
+    y: bb.y - Math.sin(crankAngle) * crankR
+  };
+
+  line(bb.x, bb.y, pedal1.x, pedal1.y, "#444", R * 0.05);
+  line(bb.x, bb.y, pedal2.x, pedal2.y, "#444", R * 0.05);
+
+  ctx.save();
+  ctx.translate(pedal1.x, pedal1.y);
+  ctx.rotate(crankAngle + Math.PI / 2);
+  ctx.fillStyle = "#444";
+  ctx.fillRect(-R * 0.12, -R * 0.03, R * 0.24, R * 0.06);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(pedal2.x, pedal2.y);
+  ctx.rotate(crankAngle + Math.PI / 2);
+  ctx.fillStyle = "#444";
+  ctx.fillRect(-R * 0.12, -R * 0.03, R * 0.24, R * 0.06);
+  ctx.restore();
+
+  const body = {
+    x: cx - R * 0.1,
+    y: wheelY - R * 1.35 + bob
+  };
+
+  const neckStart = {
+    x: body.x + R * 0.35,
+    y: body.y - R * 0.18
+  };
+
+  const head = {
+    x: cx + R * 0.72,
+    y: wheelY - R * 2.0 + bob * 1.2
+  };
+
+  ctx.save();
+  ctx.fillStyle = "#f7f7f7";
+  ctx.strokeStyle = "#cfcfcf";
+  ctx.lineWidth = R * 0.03;
+
+  ctx.beginPath();
+  ctx.ellipse(body.x, body.y, R * 0.78, R * 0.56, -0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(body.x - R * 0.65, body.y - R * 0.05);
+  ctx.quadraticCurveTo(
+    body.x - R * 1.05,
+    body.y - R * 0.35,
+    body.x - R * 1.15,
+    body.y - R * 0.15
+  );
+  ctx.quadraticCurveTo(
+    body.x - R * 0.85,
+    body.y + R * 0.15,
+    body.x - R * 0.55,
+    body.y + R * 0.1
+  );
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = "#f7f7f7";
+  ctx.lineWidth = R * 0.28;
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(neckStart.x, neckStart.y);
+  ctx.quadraticCurveTo(
+    body.x + R * 0.55,
+    body.y - R * 0.85,
+    head.x,
+    head.y
+  );
+  ctx.stroke();
+
+  circle(head.x, head.y, R * 0.26, "#f7f7f7", "#cfcfcf", R * 0.03);
+
+  const beakOpen = (Math.sin(t * 2.2) + 1) / 2;
+  const beakLen = R * 0.75;
+  const beakY = head.y + R * 0.05;
+
+  ctx.fillStyle = "#f4a261";
+  ctx.beginPath();
+  ctx.moveTo(head.x, head.y);
+  ctx.lineTo(head.x + beakLen, beakY - R * 0.05);
+  ctx.lineTo(head.x + beakLen * 0.92, beakY + R * 0.02);
+  ctx.lineTo(head.x, head.y + R * 0.08);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#f7c470";
+  ctx.beginPath();
+  ctx.moveTo(head.x, head.y + R * 0.08);
+  ctx.quadraticCurveTo(
+    head.x + beakLen * 0.45,
+    beakY + R * (0.18 + beakOpen * 0.12),
+    head.x + beakLen * 0.92,
+    beakY + R * 0.02
+  );
+  ctx.lineTo(head.x, head.y + R * 0.08);
+  ctx.closePath();
+  ctx.fill();
+
+  circle(head.x + R * 0.08, head.y - R * 0.04, R * 0.045, "#222");
+
+  const wingFlap = Math.sin(t * 2.5) * 0.18;
+
+  ctx.save();
+  ctx.translate(body.x, body.y);
+  ctx.rotate(wingFlap);
+  ctx.fillStyle = "#d8d8d8";
+  ctx.strokeStyle = "#cfcfcf";
+  ctx.lineWidth = R * 0.03;
+
+  ctx.beginPath();
+  ctx.ellipse(0, 0, R * 0.48, R * 0.28, -0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+
+  const hip = {
+    x: body.x + R * 0.05,
+    y: body.y + R * 0.35
+  };
+
+  const thigh = R * 0.85;
+  const shin = R * 0.85;
+
+  drawPelicanLeg(hip, pedal1, thigh, shin, 1);
+  drawPelicanLeg(hip, pedal2, thigh, shin, -1);
+
+  ctx.restore();
+}
+
+function loop(now) {
+  const t = now / 1000;
+  drawScene(t);
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

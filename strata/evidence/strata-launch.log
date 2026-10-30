@@ -1,0 +1,56 @@
+    Checking the engine for this computer…
+    No engine is installed yet. Getting the one for your graphics card…
+    Reading the signed update feed
+    Downloading engine 0.1.50 windows-x86_64-cuda-cuda13 (581 MB)
+    Downloading the engine… 10%
+    Downloading the engine… 20%
+    Downloading the engine… 30%
+    Downloading the engine… 40%
+    Downloading the engine… 50%
+    Downloading the engine… 60%
+    Downloading the engine… 70%
+    Downloading the engine… 80%
+    Downloading the engine… 90%
+    Downloading the engine… 100%
+    Unpacking 0.1.50 windows-x86_64-cuda-cuda13
+    Checking the package signature and every file
+    Test-starting engine 0.1.50 windows-x86_64-cuda-cuda13 before switching to it
+    Switching to engine 0.1.50 windows-x86_64-cuda-cuda13
+    Engine 0.1.50 is installed and will be used on the next start
+    The engine is installed.
+    Getting qwen IQ2_XS ready (a download may be large; it continues where it stopped if interrupted)…
+    Getting your model ready
+    Checking your computer
+    Getting the helper packages ready
+    Checking the engine for this PC
+    Downloading the small tools used to prepare models
+    Downloading the model files: 6.9 of 68.9 GB
+    Downloading the model files: 13.9 of 68.9 GB
+    Downloading the model files: 20.7 of 68.9 GB
+    Downloading the model files: 27.7 of 68.9 GB
+    Downloading the model files: 34.6 of 68.9 GB
+    Checking that the model files are complete (a few minutes for a big model; nothing is downloaded): 24.5 of 39.2 GB
+    Checking that the model files are complete (a few minutes for a big model; nothing is downloaded): 28.7 of 39.2 GB
+    Checking that the model files are complete (a few minutes for a big model; nothing is downloaded): 33.1 of 39.2 GB
+    Checking that the model files are complete (a few minutes for a big model; nothing is downloaded): 37.6 of 39.2 GB
+    Preparing your model for Strata (one time)
+    Preparing the model data for the engine (one time)
+    Preparing the draft layer
+    Downloading the draft layer (about 5 GB; it makes answers about twice as fast)
+    Saving the model's settings
+    qwen IQ2_XS is ready.
+    Writing this launch's settings…
+    Settings are saved.
+    Starting the engine and loading the model. The first start can take a few minutes.
+    Loading the model… 15 s
+    Loading the model… 30 s
+    The model is loaded and answering.
+    Ready: http://127.0.0.1:8080
+    Strata is serving.
+
+Strata is serving.
+  This computer  http://127.0.0.1:8080/v1
+  Anthropic apps http://127.0.0.1:8080   (Claude Code: ANTHROPIC_BASE_URL, no /v1 at the end)
+  Engine log     C:\Users\<user>\AppData\Local\Strata\launch\iq2_xs-32k.engine.log   (follow it: strata logs --follow)
+  Watch it:    strata monitor --url http://127.0.0.1:8080
+  Connect an app:  strata connect opencode      Stop:  strata launch --stop --preset "IQ2_XS 32K"

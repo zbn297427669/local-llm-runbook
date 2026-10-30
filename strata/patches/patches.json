@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "Declarative patch list applied by apply.ps1 to a Strata Terminal install.",
+    "Each patch is all-or-nothing: either its anchor is found and the snippet inserted,",
+    "or it reports why and changes nothing.",
+    "marker: must appear in the file exactly once when the patch is applied; used to",
+    "        detect 'already applied' and to revert without a backup.",
+    "anchor: the exact line the snippet is inserted AFTER (indent included).",
+    "file:   path relative to the Terminal root (the folder holding strata.py)."
+  ],
+  "patches": [
+    {
+      "id": "gpu-power-cap",
+      "title": "Cap the GPU power limit while a model serves",
+      "why": "The USB display and keyboard dropped on this PC whenever the card stepped from idle to full load.",
+      "file": "strata_cli/launch/runner.py",
+      "marker": "def _cap_gpu_power(self) -> None:",
+      "kind": "insert-before-call",
+      "insert_before": "    def start(self) -> None:",
+      "insert_after": "        self.check_port_free()",
+      "call": "        self._cap_gpu_power()",
+      "snippet": "snippets/runner_cap.py",
+      "snippet_indent": 0
+    },
+    {
+      "id": "gpu-power-restore",
+      "title": "Restore the GPU power limit on `strata launch --stop`",
+      "why": "Stopping the model should undo the cap the launch applied.",
+      "file": "strata_cli/launch/cmd.py",
+      "marker": "def _restore_gpu_power() -> None:",
+      "kind": "insert-function-and-call",
+      "insert_before": "def _stop_all(name: str | None) -> int:",
+      "call": "    _restore_gpu_power()",
+      "call_anchor": "    return 0",
+      "call_anchor_after_marker_of": "def _stop_all(name: str | None) -> int:",
+      "call_anchor_occurrence": "first",
+      "call_before_anchor": true,
+      "snippet": "snippets/cmd_restore.py",
+      "snippet_indent": 0
+    },
+    {
+      "id": "bare-help",
+      "title": "Show common commands when `strata` is typed with no arguments",
+      "why": "argparse's 'the following arguments are required: command' names none of the commands.",
+      "file": "strata_cli/cli.py",
+      "marker": "def _print_bare_help(ap) -> None:",
+      "kind": "insert-function-and-call",
+      "insert_before": "def main(argv: list[str] | None = None) -> int:",
+      "insert_after": "    ap = parser()",
+      "call": "    if not (sys.argv[1:] if argv is None else argv):\n        _print_bare_help(ap)\n        return 0",
+      "call_anchor": "    ap = parser()",
+      "call_anchor_occurrence": "first",
+      "snippet": "snippets/cli_bare_help.py",
+      "snippet_indent": 0
+    }
+  ],
+  "new_files": [
+    {
+      "id": "gpu-power-module",
+      "title": "UAC elevation helper for nvidia-smi",
+      "why": "Setting the limit needs administrator rights; this asks for them through the normal Windows prompt.",
+      "from": "gpu_power.py",
+      "to": "strata_cli/launch/gpu_power.py",
+      "marker": "def ask_for_admin(want: int, index: int | None = None)"
+    }
+  ]
+}

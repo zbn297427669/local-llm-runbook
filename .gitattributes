@@ -1,0 +1,12 @@
+# 文本文件统一用 LF 存库；Windows 原生脚本保留 CRLF。
+* text=auto eol=lf
+
+# cmd.exe 的 goto 不认 LF 换行（见 RESTORE.md 5.1），必须保持 CRLF
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 证据文件不做换行转换：文档里逐字引用它们，别让工具悄悄改字节
+strata/evidence/*.log -text
+strata/evidence/*.csv -text
+strata/evidence/*.txt -text

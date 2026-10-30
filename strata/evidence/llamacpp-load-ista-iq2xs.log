@@ -1,0 +1,53 @@
+# llama.cpp b11913 加载 ISTA-DASLab GSQ-RCO IQ2_XS 的关键日志行
+# 命令: llama-cli.exe -m <shard1> -ngl 0 -c 512 -n 4 -st -p hi --no-warmup -v
+
+0.00.082.803 I cmn  common_param: common_params_print_info: build 11913 (7aca0d2ea) with Clang 20.1.8 for Windows x86_64
+0.00.082.807 I cmn  common_param: common_params_print_info: verbosity = 2147483647 (adjust with the `-lv N` CLI arg)
+0.00.195.916 I llama_model_loader: loaded meta data with 73 key-value pairs and 1224 tensors from E:/local-ai/Strata/models/models/IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf (version GGUF V3 (latest))
+0.00.195.980 I llama_model_loader: - kv   0:                       general.architecture str              = qwen4exp
+0.00.195.989 I llama_model_loader: - kv   6:                       qwen4exp.block_count u32              = 48
+0.00.195.990 I llama_model_loader: - kv   7:                    qwen4exp.context_length u32              = 262144
+0.00.195.996 I llama_model_loader: - kv  14:                      qwen4exp.expert_count u32              = 512
+0.00.195.996 I llama_model_loader: - kv  15:                 qwen4exp.expert_used_count u32              = 10
+0.00.196.026 I llama_model_loader: - kv  51:                    tokenizer.chat_template str              = {%- set image_count = namespace(value...
+0.00.196.026 I llama_model_loader: - kv  52:                qwen4exp.ple.image_token_id u32              = 248056
+0.00.196.045 I print_info: file format = GGUF V3 (latest)
+0.00.196.045 I print_info: file type   = IQ2_XS - 2.3125 bpw
+0.00.196.046 I print_info: file size   = 63.34 GiB (3.08 BPW) 
+0.00.338.768 I print_info: arch                  = qwen4exp
+0.00.338.769 I print_info: vocab_only            = 0
+0.00.338.769 I print_info: no_alloc              = 1
+0.00.338.769 I print_info: n_ctx_train           = 262144
+0.00.338.770 I print_info: n_embd_inp            = 2560
+0.00.338.770 I print_info: n_embd                = 2560
+0.00.338.771 I print_info: n_embd_out            = 10240
+
+# 张量总数与分片
+0.00.195.916 I llama_model_loader: loaded meta data with 73 key-value pairs and 1224 tensors from E:/local-ai/Strata/models/models/IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf (version GGUF V3 (latest))
+0.00.338.953 D create_tensor: loading tensor per_layer_token_embd.weight
+0.00.457.337 I llama_model_loader: loaded meta data with 73 key-value pairs and 1224 tensors from E:/local-ai/Strata/models/models/IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf (version GGUF V3 (latest))
+0.00.600.488 D create_tensor: loading tensor per_layer_token_embd.weight
+
+# 警告与错误（仅 2 条，均为 server 配置提示，非模型加载问题）
+0.00.139.163 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.07.261.498 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+
+# 显存/内存分配（-ngl 999 -ncmoe 34 --load-mode none，见 README）
+# offloaded 49/49 layers，其中 198 个专家张量（33 层 × 3 个 gate/up/down）被 override 到 CPU
+
+# 最优配置 (-ngl 999 -ncmoe 33 -ub 1024 --load-mode none) 的实际分配
+0.00.149.942 I cmn  common_param:   - CUDA0   : NVIDIA GeForce RTX 4080 (16375 MiB, 15074 MiB free)
+0.00.149.951 I cmn  common_param:   - CPU     : 13th Gen Intel(R) Core(TM) i7-13700K (65242 MiB, 52253 MiB free)
+0.00.422.615 I load_tensors: offloaded 49/49 layers to GPU
+# 被 override 到 CPU 的专家张量（前 9 个，共 198 个）
+0.00.356.086 D tensor blk.0.ffn_down_exps.weight (225 MiB q2_0) buffer type overridden to CUDA_Host
+0.00.356.098 D tensor blk.0.ffn_gate_exps.weight (256 MiB iq2_s) buffer type overridden to CUDA_Host
+0.00.356.105 D tensor blk.0.ffn_up_exps.weight (256 MiB iq2_s) buffer type overridden to CUDA_Host
+0.00.357.578 D tensor blk.1.ffn_down_exps.weight (225 MiB q2_0) buffer type overridden to CUDA_Host
+0.00.357.590 D tensor blk.1.ffn_gate_exps.weight (206 MiB iq2_xxs) buffer type overridden to CUDA_Host
+0.00.357.597 D tensor blk.1.ffn_up_exps.weight (206 MiB iq2_xxs) buffer type overridden to CUDA_Host
+0.00.358.751 D tensor blk.2.ffn_down_exps.weight (225 MiB q2_0) buffer type overridden to CUDA_Host
+0.00.358.766 D tensor blk.2.ffn_gate_exps.weight (256 MiB iq2_s) buffer type overridden to CUDA_Host
+0.00.358.775 D tensor blk.2.ffn_up_exps.weight (256 MiB iq2_s) buffer type overridden to CUDA_Host
+
+Prompt: 63.0 t/s | Generation: 29.3 t/s
